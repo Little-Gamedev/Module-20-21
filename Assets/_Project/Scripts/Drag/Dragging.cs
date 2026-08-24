@@ -8,46 +8,48 @@ public class Dragging : MonoBehaviour
     [SerializeField] private int _dragMouseButton = 0;
 
     private Transform _draggedTransform;
-    private Ray mouseRay;
 
     private void Update()
     {
-        TryDrag();
+        if (Input.GetMouseButtonDown(_dragMouseButton))
+            TryStartDrag();
+
+        if (Input.GetMouseButton(_dragMouseButton) && _draggedTransform != null)
+            Drag();
+
+        if (Input.GetMouseButtonUp(_dragMouseButton))
+            StopDrag();
     }
 
-    private void TryDrag()
+    private void TryStartDrag()
     {
-        if (!Input.GetMouseButton(_dragMouseButton) && !IsDraggable()) return;
+        Ray mouseRay = _camera.ScreenPointToRay(Input.mousePosition);
 
-        if (_draggedTransform == null) return;
+        if (!Physics.Raycast(mouseRay, out RaycastHit hit))
+            return;
 
-        Drag(_draggedTransform);
+        IDraggable draggable = hit.collider.GetComponent<IDraggable>();
+
+        if (draggable == null)
+            return;
+
+        _draggedTransform = draggable.DragTransform;
     }
 
-    private bool IsDraggable()
+    private void Drag()
     {
-        mouseRay = _camera.ScreenPointToRay(Input.mousePosition);
+        Ray mouseRay = _camera.ScreenPointToRay(Input.mousePosition);
 
-        if (Physics.Raycast(mouseRay, out RaycastHit hit))
-        {
-            IDraggable draggable = hit.collider.GetComponent<IDraggable>();
-            if (draggable == null)
-            {
-                _draggedTransform = null;
-                return false;
-            }
+        if (!_groundCollider.Raycast(mouseRay, out RaycastHit hit, Mathf.Infinity))
+            return;
 
-            _draggedTransform = draggable.DragTransform;
-            return true;
-        }
-        else
-            _draggedTransform = null;
-        return false;
-    }
+        Vector3 newPosition = new Vector3(hit.point.x, _draggedTransform.position.y, hit.point.z);
 
-    private void Drag(Transform draggedTransform)
-    {
-        Vector3 newPosition = Input.mousePosition;
         _draggedTransform.position = newPosition;
+    }
+
+    private void StopDrag()
+    {
+        _draggedTransform = null;
     }
 }
