@@ -7,6 +7,8 @@ public class Dragging : MonoBehaviour
 
     [SerializeField] private int _dragMouseButton = 0;
 
+    private bool _isDragging = false;
+
     private Transform _draggedTransform;
 
     private void Update()
@@ -14,7 +16,7 @@ public class Dragging : MonoBehaviour
         if (Input.GetMouseButtonDown(_dragMouseButton))
             TryStartDrag();
 
-        if (Input.GetMouseButton(_dragMouseButton) && _draggedTransform != null)
+        if (Input.GetMouseButton(_dragMouseButton) && _isDragging)
             Drag();
 
         if (Input.GetMouseButtonUp(_dragMouseButton))
@@ -25,31 +27,35 @@ public class Dragging : MonoBehaviour
     {
         Ray mouseRay = _camera.ScreenPointToRay(Input.mousePosition);
 
-        if (!Physics.Raycast(mouseRay, out RaycastHit hit))
-            return;
+        if (Physics.Raycast(mouseRay, out RaycastHit hit))
+        {
+            IDraggable draggable = hit.collider.GetComponent<IDraggable>();
 
-        IDraggable draggable = hit.collider.GetComponent<IDraggable>();
-
-        if (draggable == null)
-            return;
-
-        _draggedTransform = draggable.DragTransform;
+            if (draggable == null)
+                return;
+            else
+            {
+                _draggedTransform = draggable.DragTransform;
+                _isDragging = true;
+            }
+        }
     }
 
     private void Drag()
     {
         Ray mouseRay = _camera.ScreenPointToRay(Input.mousePosition);
 
-        if (!_groundCollider.Raycast(mouseRay, out RaycastHit hit, Mathf.Infinity))
-            return;
+        if (_groundCollider.Raycast(mouseRay, out RaycastHit hit, Mathf.Infinity))
+        {
+            Vector3 newPosition = new Vector3(hit.point.x, _draggedTransform.position.y, hit.point.z);
 
-        Vector3 newPosition = new Vector3(hit.point.x, _draggedTransform.position.y, hit.point.z);
-
-        _draggedTransform.position = newPosition;
+            _draggedTransform.position = newPosition;
+        }
     }
 
     private void StopDrag()
     {
         _draggedTransform = null;
+        _isDragging = false;
     }
 }
